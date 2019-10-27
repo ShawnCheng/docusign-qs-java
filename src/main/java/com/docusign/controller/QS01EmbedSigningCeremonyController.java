@@ -31,35 +31,37 @@ import java.util.Arrays;
 @Controller
 public class QS01EmbedSigningCeremonyController {
 
+    // Data for this example
+    // Fill in these constants
+    //
+    // Obtain an OAuth access token from https://developers.docusign.com/oauth-token-generator
+    String accessToken = "{ACCESS_TOKEN}";
+    // Obtain your accountId from demo.docusign.com -- the account id is shown in the drop down on the
+    // upper right corner of the screen by your picture or the default picture.
+    String accountId = "{ACCOUNT_ID}";
+    // Recipient Information
+    String signerName = "Xiao CHENG";
+    String signerEmail = "{USER_EMAIL}";
+
+    // The url for this web application
+    String baseUrl = "http://localhost:8080";
+    String clientUserId = "123"; // Used to indicate that the signer will use an embedded
+    // Signing Ceremony. Represents the signer's userId within
+    // your application.
+    String authenticationMethod = "None"; // How is this application authenticating
+    // the signer? See the `authenticationMethod' definition
+    //  https://developers.docusign.com/esign-rest-api/reference/Envelopes/EnvelopeViews/createRecipient
+    //
+    // The API base path
+    String basePath = "https://demo.docusign.net/restapi";
+    // The document to be signed. See /qs-java/src/main/resources/World_Wide_Corp_lorem.pdf
+    String docPdf = "World_Wide_Corp_lorem.pdf";
+
+    EnvelopeSummary envelopeSummary = null;
+
     @RequestMapping(path = "/qs01", method = RequestMethod.POST)
     public Object create(ModelMap model) throws ApiException, IOException {
         model.addAttribute("title","Embedded Signing Ceremony");
-
-        // Data for this example
-        // Fill in these constants
-        //
-        // Obtain an OAuth access token from https://developers.docusign.com/oauth-token-generator
-        String accessToken = "{ACCESS_TOKEN}";
-        // Obtain your accountId from demo.docusign.com -- the account id is shown in the drop down on the
-        // upper right corner of the screen by your picture or the default picture.
-        String accountId = "{ACCOUNT_ID}";
-        // Recipient Information
-        String signerName = "{USER_FULLNAME}";
-        String signerEmail = "{USER_EMAIL}";
-
-        // The url for this web application
-        String baseUrl = "http://localhost:8080";
-        String clientUserId = "123"; // Used to indicate that the signer will use an embedded
-        // Signing Ceremony. Represents the signer's userId within
-        // your application.
-        String authenticationMethod = "None"; // How is this application authenticating
-        // the signer? See the `authenticationMethod' definition
-        //  https://developers.docusign.com/esign-rest-api/reference/Envelopes/EnvelopeViews/createRecipient
-        //
-        // The API base path
-        String basePath = "https://demo.docusign.net/restapi";
-        // The document to be signed. See /qs-java/src/main/resources/World_Wide_Corp_lorem.pdf
-        String docPdf = "World_Wide_Corp_lorem.pdf";
 
         // Step 1. Create the envelope definition
         // One "sign here" tab will be added to the document.
@@ -83,6 +85,12 @@ public class QS01EmbedSigningCeremonyController {
         signer.clientUserId(clientUserId);
         signer.recipientId("1");
 
+        Signer signer2 = new Signer();
+        signer2.setEmail("email2@example.com");
+        signer2.setName("singer 2");
+        signer2.clientUserId("123-2");
+        signer2.recipientId("2");
+
         // Create a signHere tabs (also known as a field) on the document,
         // We're using x/y positioning. Anchor string positioning can also be used
         SignHere signHere = new SignHere();
@@ -105,7 +113,7 @@ public class QS01EmbedSigningCeremonyController {
         envelopeDefinition.setDocuments(Arrays.asList(document));
         // Add the recipient to the envelope object
         Recipients recipients = new Recipients();
-        recipients.setSigners(Arrays.asList(signer));
+        recipients.setSigners(Arrays.asList(signer, signer2));
         envelopeDefinition.setRecipients(recipients);
         envelopeDefinition.setStatus("sent"); // requests that the envelope be created and sent.
 
@@ -113,8 +121,18 @@ public class QS01EmbedSigningCeremonyController {
         ApiClient apiClient = new ApiClient(basePath);
         apiClient.addDefaultHeader("Authorization", "Bearer " + accessToken);
         EnvelopesApi envelopesApi = new EnvelopesApi(apiClient);
-        EnvelopeSummary results = envelopesApi.createEnvelope(accountId, envelopeDefinition);
-        String envelopeId = results.getEnvelopeId();
+        envelopeSummary = envelopesApi.createEnvelope(accountId, envelopeDefinition);
+        String envelopeId = envelopeSummary.getEnvelopeId();
+        return envelopeId;
+    }
+
+    @RequestMapping(path = "/qs01/ceremony_url", method = RequestMethod.GET)
+    public Object getCeremonyUrl(ModelMap model) throws ApiException, IOException {
+        model.addAttribute("title","Embedded Signing Ceremony");
+
+        ApiClient apiClient = new ApiClient(basePath);
+        apiClient.addDefaultHeader("Authorization", "Bearer " + accessToken);
+        EnvelopesApi envelopesApi = new EnvelopesApi(apiClient);
 
         // Step 3. The envelope has been created.
         //         Request a Recipient View URL (the Signing Ceremony URL)
@@ -127,7 +145,7 @@ public class QS01EmbedSigningCeremonyController {
         viewRequest.setUserName(signerName);
         viewRequest.setClientUserId(clientUserId);
         // call the CreateRecipientView API
-        ViewUrl results1 = envelopesApi.createRecipientView(accountId, envelopeId, viewRequest);
+        ViewUrl results1 = envelopesApi.createRecipientView(accountId, envelopeSummary.getEnvelopeId(), viewRequest);
 
         // Step 4. The Recipient View URL (the Signing Ceremony URL) has been received.
         //         The user's browser will be redirected to it.
@@ -136,7 +154,6 @@ public class QS01EmbedSigningCeremonyController {
         redirect.setExposeModelAttributes(false);
         return redirect;
     }
-
 
     // Read a file
     private byte[] readFile(String path) throws IOException {

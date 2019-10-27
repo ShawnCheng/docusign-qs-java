@@ -6,7 +6,13 @@
 
 <form class="eg" action="" method="post" data-busy="form">
     <input type="hidden" name="_csrf" value="${csrfToken}">
-    <button type="submit" class="btn btn-primary">Submit</button>
+    <button type="submit" class="btn btn-primary">Create Envelope</button>
 </form>
+
+
+<form class="eg" action="qs01/ceremony_url" method="get" data-busy="form">
+    <button type="submit" class="btn btn-primary">Get View URL</button>
+</form>
+
 
 <jsp:include page="../partials/foot.jsp"/>
