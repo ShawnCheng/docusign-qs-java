@@ -13,7 +13,9 @@ import org.springframework.web.servlet.view.RedirectView;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -57,7 +59,10 @@ public class QS01EmbedSigningCeremonyController {
     // The document to be signed. See /qs-java/src/main/resources/World_Wide_Corp_lorem.pdf
     String docPdf = "World_Wide_Corp_lorem.pdf";
 
+    String templateId = "9ae83d07-ac57-496b-a02c-092b92e8aeb3";
+    public static final String TEMPLATE_ROLE_NAME = "signer";
     EnvelopeSummary envelopeSummary = null;
+    EnvelopeSummary envelopeSummaryFromTemplate = null;
 
     @RequestMapping(path = "/qs01", method = RequestMethod.POST)
     public Object create(ModelMap model) throws ApiException, IOException {
@@ -79,17 +84,7 @@ public class QS01EmbedSigningCeremonyController {
         // The signer object
         // Create a signer recipient to sign the document, identified by name and email
         // We set the clientUserId to enable embedded signing for the recipient
-        Signer signer = new Signer();
-        signer.setEmail(signerEmail);
-        signer.setName(signerName);
-        signer.clientUserId(clientUserId);
-        signer.recipientId("1");
-
-        Signer signer2 = new Signer();
-        signer2.setEmail("email2@example.com");
-        signer2.setName("singer 2");
-        signer2.clientUserId("123-2");
-        signer2.recipientId("2");
+        List<Signer> signers = getSigners();
 
         // Create a signHere tabs (also known as a field) on the document,
         // We're using x/y positioning. Anchor string positioning can also be used
@@ -105,7 +100,7 @@ public class QS01EmbedSigningCeremonyController {
         // The Tabs object wants arrays of the different field/tab types
         Tabs signerTabs = new Tabs();
         signerTabs.setSignHereTabs(Arrays.asList(signHere));
-        signer.setTabs(signerTabs);
+        getSigners().get(0).setTabs(signerTabs);
 
         // Next, create the top level envelope definition and populate it.
         EnvelopeDefinition envelopeDefinition = new EnvelopeDefinition();
@@ -113,7 +108,7 @@ public class QS01EmbedSigningCeremonyController {
         envelopeDefinition.setDocuments(Arrays.asList(document));
         // Add the recipient to the envelope object
         Recipients recipients = new Recipients();
-        recipients.setSigners(Arrays.asList(signer, signer2));
+        recipients.setSigners(signers);
         envelopeDefinition.setRecipients(recipients);
         envelopeDefinition.setStatus("sent"); // requests that the envelope be created and sent.
 
@@ -124,6 +119,22 @@ public class QS01EmbedSigningCeremonyController {
         envelopeSummary = envelopesApi.createEnvelope(accountId, envelopeDefinition);
         String envelopeId = envelopeSummary.getEnvelopeId();
         return envelopeId;
+    }
+
+    private List<Signer> getSigners() {
+        Signer signer = new Signer();
+        signer.setEmail(signerEmail);
+        signer.setName(signerName);
+        signer.clientUserId(clientUserId);
+        signer.recipientId("1");
+
+        Signer signer2 = new Signer();
+        signer2.setEmail("email2@example.com");
+        signer2.setName("singer 2");
+        signer2.clientUserId("123-2");
+        signer2.recipientId("2");
+
+        return Arrays.asList(signer, signer2);
     }
 
     @RequestMapping(path = "/qs01/ceremony_url", method = RequestMethod.GET)
@@ -153,6 +164,71 @@ public class QS01EmbedSigningCeremonyController {
         RedirectView redirect = new RedirectView(redirectUrl);
         redirect.setExposeModelAttributes(false);
         return redirect;
+    }
+
+    @RequestMapping(path = "/qs01/envelope_by_template", method = RequestMethod.GET)
+    public Object createEnvelopeByTemplate(ModelMap model) throws ApiException, IOException {
+        model.addAttribute("title","Embedded Signing Ceremony");
+
+        // Next, create the top level envelope definition and populate it.
+        EnvelopeDefinition envelopeDefinition = new EnvelopeDefinition();
+        envelopeDefinition.setTemplateId(templateId);
+        envelopeDefinition.setTemplateRoles(getTemplateRoles());
+        envelopeDefinition.setStatus("sent"); // requests that the envelope be created and sent.
+
+        // Step 2. Call DocuSign to create and send the envelope
+        ApiClient apiClient = new ApiClient(basePath);
+        apiClient.addDefaultHeader("Authorization", "Bearer " + accessToken);
+        EnvelopesApi envelopesApi = new EnvelopesApi(apiClient);
+
+        envelopeSummaryFromTemplate = envelopesApi.createEnvelope(accountId, envelopeDefinition);
+        String envelopeId = envelopeSummaryFromTemplate.getEnvelopeId();
+        return envelopeId;
+    }
+
+    @RequestMapping(path = "/qs01/ceremony_url_by_template", method = RequestMethod.GET)
+    public Object getCeremonyUrlByTemplate(ModelMap model) throws ApiException, IOException {
+        model.addAttribute("title","Embedded Signing Ceremony");
+
+        ApiClient apiClient = new ApiClient(basePath);
+        apiClient.addDefaultHeader("Authorization", "Bearer " + accessToken);
+        EnvelopesApi envelopesApi = new EnvelopesApi(apiClient);
+
+        // Step 3. The envelope has been created.
+        //         Request a Recipient View URL (the Signing Ceremony URL)
+        RecipientViewRequest viewRequest = new RecipientViewRequest();
+        // Set the url where you want the recipient to go once they are done signing
+        // should typically be a callback route somewhere in your app.
+        viewRequest.setReturnUrl(baseUrl + "/ds-return");
+        viewRequest.setAuthenticationMethod(authenticationMethod);
+        viewRequest.setEmail(signerEmail);
+        viewRequest.setUserName(signerName);
+        viewRequest.setClientUserId(clientUserId);
+        // call the CreateRecipientView API
+        ViewUrl results1 = envelopesApi.createRecipientView(accountId, envelopeSummaryFromTemplate.getEnvelopeId(), viewRequest);
+
+        // Step 4. The Recipient View URL (the Signing Ceremony URL) has been received.
+        //         The user's browser will be redirected to it.
+        String redirectUrl = results1.getUrl();
+        RedirectView redirect = new RedirectView(redirectUrl);
+        redirect.setExposeModelAttributes(false);
+        return redirect;
+    }
+
+    private List<TemplateRole> getTemplateRoles() {
+        TemplateRole signer = new TemplateRole();
+        signer.setEmail(signerEmail);
+        signer.setName(signerName);
+        signer.clientUserId(clientUserId);
+        signer.setRoleName(TEMPLATE_ROLE_NAME);
+
+        TemplateRole signer2 = new TemplateRole();
+        signer2.setEmail("email2@example.com");
+        signer2.setName("singer 2");
+        signer2.clientUserId("123-2");
+        signer2.setRoleName(TEMPLATE_ROLE_NAME);
+
+        return Arrays.asList(signer, signer2);
     }
 
     // Read a file

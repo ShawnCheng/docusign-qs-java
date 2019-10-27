@@ -15,4 +15,13 @@
 </form>
 
 
+<form class="eg" action="qs01/envelope_by_template" method="get" data-busy="form">
+    <button type="submit" class="btn btn-primary">Create Envelope By Template</button>
+</form>
+
+
+<form class="eg" action="qs01/ceremony_url_by_template" method="get" data-busy="form">
+    <button type="submit" class="btn btn-primary">Get View URL by Template</button>
+</form>
+
 <jsp:include page="../partials/foot.jsp"/>
