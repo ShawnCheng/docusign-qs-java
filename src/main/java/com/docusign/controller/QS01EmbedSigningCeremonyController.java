@@ -5,6 +5,7 @@ import com.docusign.esign.client.ApiClient;
 import com.docusign.esign.client.ApiException;
 import com.docusign.esign.model.*;
 import com.sun.jersey.core.util.Base64;
+import org.joda.time.DateTime;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -172,6 +173,8 @@ public class QS01EmbedSigningCeremonyController {
 
         // Next, create the top level envelope definition and populate it.
         EnvelopeDefinition envelopeDefinition = new EnvelopeDefinition();
+        envelopeDefinition.setEmailSubject("Greeting From WAP: Please sign this document - World_Wide_Corp_lorem @"
+                + DateTime.now().toString("(MM-dd HH-mm)"));
         envelopeDefinition.setTemplateId(templateId);
         envelopeDefinition.setTemplateRoles(getTemplateRoles());
         envelopeDefinition.setStatus("sent"); // requests that the envelope be created and sent.
