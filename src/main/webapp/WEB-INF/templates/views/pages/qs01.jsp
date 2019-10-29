@@ -20,8 +20,12 @@
 </form>
 
 
-<form class="eg" action="qs01/ceremony_url_by_template" method="get" data-busy="form">
-    <button type="submit" class="btn btn-primary">Get View URL by Template</button>
+<form class="eg" action="qs01/ceremony_url_by_template1" method="get" data-busy="form">
+    <button type="submit" class="btn btn-primary">Get View URL by Template Signer1</button>
+</form>
+
+<form class="eg" action="qs01/ceremony_url_by_template2" method="get" data-busy="form">
+    <button type="submit" class="btn btn-primary">Get View URL by Template Signer2</button>
 </form>
 
 <jsp:include page="../partials/foot.jsp"/>

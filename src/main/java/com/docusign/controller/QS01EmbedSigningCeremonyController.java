@@ -45,10 +45,14 @@ public class QS01EmbedSigningCeremonyController {
     // Recipient Information
     String signerName = "Xiao CHENG";
     String signerEmail = "{USER_EMAIL}";
+    String clientUserId = "123-1"; // Used to indicate that the signer will use an embedded
+
+    String signerName2 = "Signer 2";
+    String signerEmail2 = "{USER_EMAIL}";
+    String clientUserId2 = "123-2"; // Used to indicate that the signer will use an embedded
 
     // The url for this web application
     String baseUrl = "http://localhost:8080";
-    String clientUserId = "123"; // Used to indicate that the signer will use an embedded
     // Signing Ceremony. Represents the signer's userId within
     // your application.
     String authenticationMethod = "None"; // How is this application authenticating
@@ -130,9 +134,9 @@ public class QS01EmbedSigningCeremonyController {
         signer.recipientId("1");
 
         Signer signer2 = new Signer();
-        signer2.setEmail("email2@example.com");
-        signer2.setName("singer 2");
-        signer2.clientUserId("123-2");
+        signer2.setEmail(signerEmail2);
+        signer2.setName(signerName2);
+        signer2.clientUserId(clientUserId2);
         signer2.recipientId("2");
 
         return Arrays.asList(signer, signer2);
@@ -189,7 +193,7 @@ public class QS01EmbedSigningCeremonyController {
         return envelopeId;
     }
 
-    @RequestMapping(path = "/qs01/ceremony_url_by_template", method = RequestMethod.GET)
+    @RequestMapping(path = "/qs01/ceremony_url_by_template1", method = RequestMethod.GET)
     public Object getCeremonyUrlByTemplate(ModelMap model) throws ApiException, IOException {
         model.addAttribute("title","Embedded Signing Ceremony");
 
@@ -218,6 +222,35 @@ public class QS01EmbedSigningCeremonyController {
         return redirect;
     }
 
+    @RequestMapping(path = "/qs01/ceremony_url_by_template2", method = RequestMethod.GET)
+    public Object getCeremonyUrlByTemplate2(ModelMap model) throws ApiException, IOException {
+        model.addAttribute("title","Embedded Signing Ceremony");
+
+        ApiClient apiClient = new ApiClient(basePath);
+        apiClient.addDefaultHeader("Authorization", "Bearer " + accessToken);
+        EnvelopesApi envelopesApi = new EnvelopesApi(apiClient);
+
+        // Step 3. The envelope has been created.
+        //         Request a Recipient View URL (the Signing Ceremony URL)
+        RecipientViewRequest viewRequest = new RecipientViewRequest();
+        // Set the url where you want the recipient to go once they are done signing
+        // should typically be a callback route somewhere in your app.
+        viewRequest.setReturnUrl(baseUrl + "/ds-return");
+        viewRequest.setAuthenticationMethod(authenticationMethod);
+        viewRequest.setEmail(signerEmail2);
+        viewRequest.setUserName(signerName2);
+        viewRequest.setClientUserId(clientUserId2);
+        // call the CreateRecipientView API
+        ViewUrl results1 = envelopesApi.createRecipientView(accountId, envelopeSummaryFromTemplate.getEnvelopeId(), viewRequest);
+
+        // Step 4. The Recipient View URL (the Signing Ceremony URL) has been received.
+        //         The user's browser will be redirected to it.
+        String redirectUrl = results1.getUrl();
+        RedirectView redirect = new RedirectView(redirectUrl);
+        redirect.setExposeModelAttributes(false);
+        return redirect;
+    }
+
     private List<TemplateRole> getTemplateRoles() {
         TemplateRole signer = new TemplateRole();
         signer.setEmail(signerEmail);
@@ -226,9 +259,9 @@ public class QS01EmbedSigningCeremonyController {
         signer.setRoleName(TEMPLATE_ROLE_NAME);
 
         TemplateRole signer2 = new TemplateRole();
-        signer2.setEmail("email2@example.com");
-        signer2.setName("singer 2");
-        signer2.clientUserId("123-2");
+        signer2.setEmail(signerEmail2);
+        signer2.setName(signerName2);
+        signer2.clientUserId(clientUserId2);
         signer2.setRoleName(TEMPLATE_ROLE_NAME);
 
         return Arrays.asList(signer, signer2);
