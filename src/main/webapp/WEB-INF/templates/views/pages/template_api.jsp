@@ -12,7 +12,7 @@
 
 <form class="eg" action="template_api/template_roles" method="get" data-busy="form">
     <input type="text" name="template_id">
-    <button type="submit" class="btn btn-primary">List Templates</button>
+    <button type="submit" class="btn btn-primary">List Templates Role of Envelope</button>
 </form>
 
 <jsp:include page="../partials/foot.jsp"/>

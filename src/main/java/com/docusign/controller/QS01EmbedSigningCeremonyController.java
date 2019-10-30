@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.util.List;
 
 import org.joda.time.DateTime;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -55,10 +56,12 @@ public class QS01EmbedSigningCeremonyController {
     // Fill in these constants
     //
     // Obtain an OAuth access token from https://developers.docusign.com/oauth-token-generator
-    String accessToken = "{ACCESS_TOKEN}";
+    @Value("${docusign.api.dev_token}")
+    String accessToken;
     // Obtain your accountId from demo.docusign.com -- the account id is shown in the drop down on the
     // upper right corner of the screen by your picture or the default picture.
-    String accountId = "{ACCOUNT_ID}";
+    @Value("${docusign.api.account_id}")
+    String accountId;
     // Recipient Information
     String signerName = "Xiao CHENG";
     String signerEmail = "{USER_EMAIL}";
@@ -69,7 +72,8 @@ public class QS01EmbedSigningCeremonyController {
     String clientUserId2 = "123-2"; // Used to indicate that the signer will use an embedded
 
     // The url for this web application
-    String baseUrl = "http://localhost:8080";
+    @Value("${docusign.api.base_url}")
+    String baseUrl;
     // Signing Ceremony. Represents the signer's userId within
     // your application.
     String authenticationMethod = "None"; // How is this application authenticating

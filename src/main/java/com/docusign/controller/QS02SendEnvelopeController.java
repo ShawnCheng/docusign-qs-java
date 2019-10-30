@@ -1,19 +1,28 @@
 package com.docusign.controller;
 
-import com.docusign.esign.api.EnvelopesApi;
-import com.docusign.esign.client.ApiClient;
-import com.docusign.esign.client.ApiException;
-import com.docusign.esign.model.*;
-import com.sun.jersey.core.util.Base64;
-import org.json.JSONObject;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.ModelMap;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+
+import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.ModelMap;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+
+import com.docusign.esign.api.EnvelopesApi;
+import com.docusign.esign.client.ApiClient;
+import com.docusign.esign.client.ApiException;
+import com.docusign.esign.model.Document;
+import com.docusign.esign.model.EnvelopeDefinition;
+import com.docusign.esign.model.EnvelopeSummary;
+import com.docusign.esign.model.Recipients;
+import com.docusign.esign.model.SignHere;
+import com.docusign.esign.model.Signer;
+import com.docusign.esign.model.Tabs;
+import com.sun.jersey.core.util.Base64;
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -30,27 +39,33 @@ import java.util.Arrays;
 @Controller
 public class QS02SendEnvelopeController {
 
+    // Data for this example
+    // Fill in these constants
+    //
+    // Obtain an OAuth access token from https://developers.docusign.com/oauth-token-generator
+    @Value("${docusign.api.dev_token}")
+    String accessToken;
+    // Obtain your accountId from demo.docusign.com -- the account id is shown in the drop down on the
+    // upper right corner of the screen by your picture or the default picture.
+    @Value("${docusign.api.account_id}")
+    String accountId;
+    // Recipient Information
+    @Value("${testdata.signer1.name}")
+    String signerName;
+    @Value("${testdata.signer1.email}")
+    String signerEmail;
+
+    // The url for this web application
+    String baseUrl = "http://localhost:8080";
+    //
+    // The API base path
+    @Value("${docusign.api.base_url}")
+    String basePath;
+    // The document to be signed. See /qs-java/src/main/resources/World_Wide_Corp_lorem.pdf
+    String docPdf = "World_Wide_Corp_lorem.pdf";
+
     @RequestMapping(path = "/qs02", method = RequestMethod.POST)
     public Object create(ModelMap model) throws ApiException, IOException {
-        // Data for this example
-        // Fill in these constants
-        //
-        // Obtain an OAuth access token from https://developers.docusign.com/oauth-token-generator
-        String accessToken = "{ACCESS_TOKEN}";
-        // Obtain your accountId from demo.docusign.com -- the account id is shown in the drop down on the
-        // upper right corner of the screen by your picture or the default picture.
-        String accountId = "{ACCOUNT_ID}";
-        // Recipient Information
-        String signerName = "{USER_FULLNAME}";
-        String signerEmail = "{USER_EMAIL}";
-
-        // The url for this web application
-        String baseUrl = "http://localhost:8080";
-        //
-        // The API base path
-        String basePath = "https://demo.docusign.net/restapi";
-        // The document to be signed. See /qs-java/src/main/resources/World_Wide_Corp_lorem.pdf
-        String docPdf = "World_Wide_Corp_lorem.pdf";
 
         // Step 1. Create the envelope definition
         // One "sign here" tab will be added to the document.
