@@ -1,22 +1,39 @@
 package com.docusign.controller;
 
-import com.docusign.esign.api.EnvelopesApi;
-import com.docusign.esign.client.ApiClient;
-import com.docusign.esign.client.ApiException;
-import com.docusign.esign.model.*;
-import com.sun.jersey.core.util.Base64;
+import static java.util.Arrays.asList;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.util.List;
+
 import org.joda.time.DateTime;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.view.RedirectView;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+
+import com.docusign.esign.api.EnvelopesApi;
+import com.docusign.esign.client.ApiClient;
+import com.docusign.esign.client.ApiException;
+import com.docusign.esign.model.Document;
+import com.docusign.esign.model.Envelope;
+import com.docusign.esign.model.EnvelopeDefinition;
+import com.docusign.esign.model.EnvelopeDocument;
+import com.docusign.esign.model.EnvelopeDocumentsResult;
+import com.docusign.esign.model.EnvelopeSummary;
+import com.docusign.esign.model.RecipientViewRequest;
+import com.docusign.esign.model.Recipients;
+import com.docusign.esign.model.SignHere;
+import com.docusign.esign.model.Signer;
+import com.docusign.esign.model.Tabs;
+import com.docusign.esign.model.TemplateRole;
+import com.docusign.esign.model.ViewUrl;
+import com.sun.jersey.core.util.Base64;
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -104,13 +121,13 @@ public class QS01EmbedSigningCeremonyController {
         // Add the tabs to the signer object
         // The Tabs object wants arrays of the different field/tab types
         Tabs signerTabs = new Tabs();
-        signerTabs.setSignHereTabs(Arrays.asList(signHere));
+        signerTabs.setSignHereTabs(asList(signHere));
         getSigners().get(0).setTabs(signerTabs);
 
         // Next, create the top level envelope definition and populate it.
         EnvelopeDefinition envelopeDefinition = new EnvelopeDefinition();
         envelopeDefinition.setEmailSubject("Please sign this document");
-        envelopeDefinition.setDocuments(Arrays.asList(document));
+        envelopeDefinition.setDocuments(asList(document));
         // Add the recipient to the envelope object
         Recipients recipients = new Recipients();
         recipients.setSigners(signers);
@@ -139,7 +156,7 @@ public class QS01EmbedSigningCeremonyController {
         signer2.clientUserId(clientUserId2);
         signer2.recipientId("2");
 
-        return Arrays.asList(signer, signer2);
+        return asList(signer, signer2);
     }
 
     @RequestMapping(path = "/qs01/ceremony_url", method = RequestMethod.GET)
@@ -251,6 +268,37 @@ public class QS01EmbedSigningCeremonyController {
         return redirect;
     }
 
+    @RequestMapping(path = "/qs01/download_documents", method = RequestMethod.GET)
+    public void downloadDocumentsInEnvelope(@RequestParam(value="envelope_id", required=false) String envelopeId)
+            throws ApiException, IOException {
+        ApiClient apiClient = new ApiClient(basePath);
+        apiClient.addDefaultHeader("Authorization", "Bearer " + accessToken);
+        // instantiate a new EnvelopesApi object
+        EnvelopesApi envelopesApi = new EnvelopesApi(apiClient);
+
+        Envelope envelope = envelopesApi.getEnvelope(accountId, envelopeId);
+
+        System.out.println(envelope);
+
+        if ("completed".equals(envelope.getStatus()) ) {
+            // call the listDocuments API to list info about each envelope document
+            EnvelopeDocumentsResult docsList = envelopesApi.listDocuments(accountId, envelopeId);
+            System.out.println("EnvelopeDocumentsResult: " + docsList);
+
+            // loop through each EnvelopeDocument object
+            for( EnvelopeDocument doc: docsList.getEnvelopeDocuments() ) {
+                // call the getDocument() API for each document and write to current dir
+                // There's a `summary` type document containing envelope interaction audit history.
+                if (!"summary".equals(doc.getType()))
+                Files.write(
+                        new File(doc.getName()).toPath(),
+                        envelopesApi.getDocument(accountId, envelopeId, doc.getDocumentId())
+                );
+            }
+        }
+
+    }
+
     private List<TemplateRole> getTemplateRoles() {
         TemplateRole signer = new TemplateRole();
         signer.setEmail(signerEmail);
@@ -264,7 +312,7 @@ public class QS01EmbedSigningCeremonyController {
         signer2.clientUserId(clientUserId2);
         signer2.setRoleName(TEMPLATE_ROLE_NAME);
 
-        return Arrays.asList(signer, signer2);
+        return asList(signer, signer2);
     }
 
     // Read a file

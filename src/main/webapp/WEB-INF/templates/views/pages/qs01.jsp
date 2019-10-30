@@ -28,4 +28,9 @@
     <button type="submit" class="btn btn-primary">Get View URL by Template Signer2</button>
 </form>
 
+<form class="eg" action="qs01/download_documents" method="get" data-busy="form">
+    <input type="text" name="envelope_id">
+    <button type="submit" class="btn btn-primary">Download Documents</button>
+</form>
+
 <jsp:include page="../partials/foot.jsp"/>
